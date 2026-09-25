@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<title>Header Graphic Generator</title>
+
+		<!-- Bootstrap 5 CSS -->
+		<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
+
+		<!-- Custom CSS -->
+		<link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}" />
+	</head>
+	<body class="bg-light">
+		<nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm d-none d-lg-block">
+			<div class="container">
+				<a class="navbar-brand me-auto" href="/"><img src="{{ url_for('static', filename='images/logo.png') }}"></a>
+				
+				<ul class="navbar-nav">
+					<li class="nav-item dropdown">
+						<a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+							{% if user %}
+								Welcome {{ user.username }}
+							{% else %}
+								Menu
+							{% endif %}
+						</a>
+						<ul class="dropdown-menu dropdown-menu-end">
+							{% if user %}
+								<li><a class="dropdown-item" href="{{ url_for('logout') }}">Sign Out</a></li>
+							{% else %}
+								<li><a class="dropdown-item" href="{{ url_for('login') }}">Sign In</a></li>
+							{% endif %}
+						</ul>
+					</li>
+				</ul>
+			</div>
+		</nav>
+
+		<div class="container mt-3 d-none d-lg-block">
+			<div id="app">
+				<h4 class="mb-3">Header Graphic Generator</h4>
+
+				<div class="row">
+					<!-- Section 1: Controls (30% width) -->
+					<div class="col-md-3">
+						<div class="card">
+							<div class="card-body">
+								<!-- Template Dropdown -->
+								<!-- <div class="mb-4">
+									<h6 class="fw-semibold">Template</h6>
+									<select id="templateSelect" class="form-select" v-model="selectedTemplate">
+										<option value="">Choose a template...</option>
+										<option v-for="template in templates" :key="template.id" :value="template">[[ template.title ]]</option>
+									</select>
+								</div> -->
+
+								<div class="mb-4">
+									<h6 class="fw-semibold mb-0">Template</h6>
+									<p class="fw-bold">
+										[[ selectedTemplate ? selectedTemplate.title : 'No template selected' ]]
+									</p>
+								</div>
+								
+
+								<div class="mb-2">
+									<h6 class="fw-semibold">Choose words (Optional)</h6>
+									<!-- Words Selection Button -->
+									<div class="mb-2">
+										<button class="btn btn-sm btn-orange" data-bs-toggle="modal" data-bs-target="#wordsModal" :disabled="selectedWords.length == 3 || !selectedTemplate">Click to choose</button>
+										<div class="text-muted small"><em>You can select at the most 3 keywords.</em></div>
+									</div>
+									<!-- Selected Words Tags -->
+									<div class="selected-words mt-3" v-if="selectedWords.length > 0">
+										<div class="small mb-1">Selected Keywords ([[selectedWords.length]]/3):</div>
+										<div class="draggable-container" ref="draggableContainer">
+											<div v-for="(word, index) in selectedWords" :key="word.id" :data-id="word.id" class="d-inline-flex flex-row gap-4 align-items-center bg-light-orange me-2 mb-2 p-2 ps-3 rounded-pill small text-uppercase fw-semibold draggable-tag">
+												[[ word.title ]]
+												<button type="button" class="btn-close small" aria-label="Close" @click="removeWord(index)"></button>
+											</div>
+										</div>
+										<div class="text-muted small"><em>Drag and drop to reorder</em></div>
+										<div class="text-muted small"><em>Click on the 'x' to remove a word</em></div>
+									</div>
+									<div v-else class="">You haven't selected anything.</div>
+								</div>
+							</div>
+						</div>
+					</div>
+
+					<!-- Section 2: Preview (70% width) -->
+					<div class="col-md-9">
+						<div class="card">
+							<div class="card-body">
+								<h5 class="card-title">Preview</h5>
+								<div class="preview-container" v-if="selectedTemplate">
+									<div class="position-relative">
+										<img :src="'/api/template-image/'+selectedTemplate.id"  class="img-fluid" alt="Template Image">
+										<div class="preview-words" v-if="selectedWords.length > 0">[[ selectedWords.map(w => w.title).join(' | ') ]]</div>
+									</div>
+								</div>
+								<div v-else class="text-center py-5 text-muted">Select a template to see preview</div>
+								<div class="mt-4">
+									<form method="POST" action="/generate-header" class="mt-4">
+										<input type="hidden" name="template_id" :value="selectedTemplate?.id">
+										<input type="hidden" name="words[]" :value="word.title" v-for="word in selectedWords" :key="word.id">
+										<button type="submit" class="btn btn-orange" :disabled="!selectedTemplate">Download</button>
+									</form>
+								</div>
+							</div>
+						</div>
+					</div>
+				</div>
+
+				<!-- Words Selection Modal -->
+				<div class="modal fade" id="wordsModal" tabindex="-1" aria-labelledby="wordsModalLabel" aria-hidden="true">
+					<div class="modal-dialog modal-xl">
+						<div class="modal-content">
+							<div class="modal-header">
+								<h5 class="modal-title" id="wordsModalLabel">Select Keywords (You have selected [[tempSelectedWords.length]] out of 3)</h5>
+								<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+							</div>
+							<div class="modal-body">
+								<div class="row">
+									<div class="col-3" v-for="word in words" :key="word.id">
+										<div class="form-check">
+											<input class="form-check-input" type="checkbox" :value="word" :id="'word-' + word.id" v-model="tempSelectedWords" :disabled="tempSelectedWords.length >= 3 && !isWordSelected(word)" />
+											<label class="form-check-label" :class="(isWordSelected(word)?'fw-bold text-orange':'')" :for="'word-' + word.id"> [[ word.title ]] </label>
+										</div>
+									</div>
+								</div>
+							</div>
+							<div class="modal-footer">
+								<button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+								<button type="button" class="btn btn-orange" @click="saveWords" data-bs-dismiss="modal">Save Changes</button>
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+
+		<div class="bg-zinc-800 text-white p-3 fixed-bottom d-none d-lg-block">
+			<div class="container mx-auto">
+				<p class="mb-2 small">
+					©2025 PwC. All rights reserved. PwC refers to the PwC network and/or one or more of its member firms, each of which is a separate legal entity. Please see
+					<a href="https://www.pwc.com/gx/en/about/corporate-governance/network-structure.html" target="_blank" class="underline text-white">pwc.com/structure</a> for further details.
+				</p>
+				<div class="d-flex flex-row gap-3 small">
+					<a href="https://www.pwc.com/gx/en/legal-notices/pwc-privacy-statement.html" target="_blank" class="text-white">Privacy</a>
+					<a href="https://www.pwc.com/gx/en/legal-notices/terms-and-conditions.html" target="_blank" class="text-white">Terms and conditions</a>
+				</div>
+			</div>
+		</div>
+
+		<div class="d-lg-none">Please view this on a Tab or a larger screen</div>
+		<!-- Bootstrap 5 JS Bundle -->
+		<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+		<!-- Vue 3 -->
+		<script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+		<!-- Add Sortable.js for drag-and-drop functionality -->
+		<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+		<script src="{{ url_for('static', filename='js/app.js') }}"></script>
+	</body>
+</html>

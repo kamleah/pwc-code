@@ -1,0 +1,18 @@
+{% extends 'base.html' %} 
+{% block content %}
+<div id="app">
+	<div class="card p-5 bg-light text-center shadow-sm mt-5">
+		<div class="card-body">
+			{% if timeout %}
+				<h4 class="mb-5 text-orange">Your session has expired due to inactivity.</h4>
+			{% else %}
+				<h4 class="mb-5 text-orange">You have successfully logged out of the application.</h4>
+			{% endif %}
+			<a href="/" class="btn btn-orange">Login again</a>
+		</div>
+	</div>
+</div>
+{% endblock %} 
+
+{% block scripts %}
+{% endblock %}
